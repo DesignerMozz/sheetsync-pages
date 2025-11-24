@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Table, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { DataVisualization } from "./DataVisualization";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SheetData {
   headers: string[];
@@ -154,43 +156,56 @@ export const GoogleSheetsIntegration = () => {
       {sheetData && (
         <Card className="shadow-medium border-border/50 animate-fade-in">
           <CardHeader>
-            <CardTitle>Sheet Data</CardTitle>
+            <CardTitle>Data Analysis</CardTitle>
             <CardDescription>
-              Showing {sheetData.rows.length} rows
+              Showing {sheetData.rows.length} rows with visualizations and raw data
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b border-border">
-                    {sheetData.headers.map((header, index) => (
-                      <th 
-                        key={index}
-                        className="text-left p-3 font-semibold text-foreground bg-muted/30"
-                      >
-                        {header}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sheetData.rows.map((row, rowIndex) => (
-                    <tr 
-                      key={rowIndex}
-                      className="border-b border-border/50 hover:bg-muted/20 transition-colors"
-                      style={{ animationDelay: `${rowIndex * 0.05}s` }}
-                    >
-                      {row.map((cell, cellIndex) => (
-                        <td key={cellIndex} className="p-3 text-foreground">
-                          {cell}
-                        </td>
+            <Tabs defaultValue="charts" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="charts">Charts & Statistics</TabsTrigger>
+                <TabsTrigger value="table">Raw Data</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="charts" className="space-y-4">
+                <DataVisualization headers={sheetData.headers} rows={sheetData.rows} />
+              </TabsContent>
+              
+              <TabsContent value="table">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b border-border">
+                        {sheetData.headers.map((header, index) => (
+                          <th 
+                            key={index}
+                            className="text-left p-3 font-semibold text-foreground bg-muted/30"
+                          >
+                            {header}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sheetData.rows.map((row, rowIndex) => (
+                        <tr 
+                          key={rowIndex}
+                          className="border-b border-border/50 hover:bg-muted/20 transition-colors"
+                          style={{ animationDelay: `${rowIndex * 0.05}s` }}
+                        >
+                          {row.map((cell, cellIndex) => (
+                            <td key={cellIndex} className="p-3 text-foreground">
+                              {cell}
+                            </td>
+                          ))}
+                        </tr>
                       ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                    </tbody>
+                  </table>
+                </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       )}
