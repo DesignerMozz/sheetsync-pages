@@ -15,6 +15,7 @@ export const GoogleSheetsIntegration = () => {
   const [sheetUrl, setSheetUrl] = useState("");
   const [sheetData, setSheetData] = useState<SheetData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [gid, setGid] = useState("");
 
   const fetchSheetData = async () => {
     if (!sheetUrl) {
@@ -33,18 +34,50 @@ export const GoogleSheetsIntegration = () => {
       
       const sheetId = sheetIdMatch[1];
       
-      // Use the public CSV export URL (sheet must be publicly accessible)
-      const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+      // Extract GID from URL if present, or use the manual input
+      const gidMatch = sheetUrl.match(/[#&]gid=([0-9]+)/);
+      const sheetGid = gid || (gidMatch ? gidMatch[1] : "0");
       
+      // Use the public CSV export URL (sheet must be publicly accessible)
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${sheetGid}`;
+      
+      console.log("Fetching from:", csvUrl);
       const response = await fetch(csvUrl);
       if (!response.ok) {
         throw new Error("Failed to fetch sheet data. Make sure the sheet is publicly accessible.");
       }
       
       const csvText = await response.text();
-      const rows = csvText.split('\n').map(row => 
-        row.split(',').map(cell => cell.trim().replace(/^"|"$/g, ''))
-      ).filter(row => row.some(cell => cell));
+      console.log("CSV Response:", csvText.substring(0, 500)); // Log first 500 chars
+      
+      // Better CSV parsing that handles quotes and commas within cells
+      const parseCSVLine = (line: string): string[] => {
+        const result: string[] = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        result.push(current.trim());
+        return result;
+      };
+      
+      const rows = csvText
+        .split('\n')
+        .filter(line => line.trim())
+        .map(line => parseCSVLine(line))
+        .filter(row => row.some(cell => cell));
+      
+      console.log("Parsed rows:", rows.length, "First row:", rows[0]);
       
       if (rows.length > 0) {
         setSheetData({
@@ -94,6 +127,19 @@ export const GoogleSheetsIntegration = () => {
               )}
               Load Data
             </Button>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Sheet Tab GID (optional)</label>
+            <Input
+              placeholder="e.g., 0 for first tab, or find in URL: #gid=123456789"
+              value={gid}
+              onChange={(e) => setGid(e.target.value)}
+              className="w-full"
+            />
+            <p className="text-xs text-muted-foreground">
+              If your data is on a different tab, copy the number from the URL after #gid= or leave blank for first sheet
+            </p>
           </div>
           
           <Alert className="bg-muted/50">
